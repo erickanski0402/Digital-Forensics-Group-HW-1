@@ -22,8 +22,9 @@ void parseInfo(char*);
 
 int main(int arc, char *argv[]){
 	char command[50] = "sudo dumpe2fs -h ";
+	//initializes the terminal command
 	strcat(command, argv[1]);
-	// system(command);
+	//concats the desired partition to the ocmmand
 
 	FILE *fp;
 	char path[1035];
@@ -31,13 +32,17 @@ int main(int arc, char *argv[]){
 	if(fp == NULL){
 		printf("Failed to run command");
 		exit(1);
+		//if the command is unable to run the program exits
 	}
 
 	while(fgets(path, sizeof(path) - 1, fp) != NULL){
+		//reads each line of the output of the command above
 		parseInfo(path);
+		//runs it through parseInfo function and adds each relevant value to 'superblock'
 	}
 
 	pclose(fp);
+	//closes fp
 
 	return 0;
 }
@@ -46,64 +51,83 @@ void parseInfo(char path[1035]){
 	char *ptr;
 	char *str = (char *)malloc(1035);
 
+	//looks for a specific substring to determine whether line passed in has relevant information
 	if(strstr(path, "Inode count:")){
-
+		
 		str = strncpy(str, path + 26, 1035);
+		//copies whatever is after the colon of the given string
 		superblock.totalInodes = strtol(str, &ptr, 10);
+		//parses the value into a number
 		printf("Total inodes: %ld\n", superblock.totalInodes);
+		//prints the information
 
 	}else if(strstr(path, "Block count:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.sizeInBlocks = strtol(str, &ptr, 10);
 		printf("Total blocks in system: %ld\n", superblock.sizeInBlocks);
+		//same as the above
 
 	}else if(strstr(path, "Reserved block count:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.reservedBlocks = strtol(str, &ptr, 10);
 		printf("Number of reserved blocks: %ld\n", superblock.reservedBlocks);
+		//same as the above
 
 	}else if(strstr(path, "Free blocks:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.freeBlocks = strtol(str, &ptr, 10);
 		printf("Number of free blocks: %ld\n", superblock.freeBlocks);
+		//same as the above
 
 	}else if(strstr(path, "Free inodes:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.freeInodes = strtol(str, &ptr, 10);
 		printf("Number of free inodes: %ld\n", superblock.freeInodes);
+		//same as the above
 
 	}else if(strstr(path, "First block:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.firstUsefulBlock = strtol(str, &ptr, 10);
 		printf("First useful block: %ld\n", superblock.firstUsefulBlock);
+		//same as the above
 
 	}else if(strstr(path, "Block size:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.blockSize = strtol(str, &ptr, 10);
 		printf("System block size: %ld\n", superblock.blockSize);
+		//same as the above
 
 	}else if(strstr(path, "Blocks per group:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.blocksPerGroup = strtol(str, &ptr, 10);
 		printf("Number of blocks per group: %ld\n", superblock.blocksPerGroup);
+		//same as the above
 
 	}else if(strstr(path, "Inodes per group:")){
 
 		str = strncpy(str, path + 26, 1035);
 		superblock.inodesPerGroup = strtol(str, &ptr, 10);
 		printf("Number of inodes per group: %ld\n", superblock.inodesPerGroup);
+		//same as the above
 
 	}else if(strstr(path, "Filesystem magic number:")){
 
 		superblock.magicSignature = strncpy(str, path + 26, 1035);
+		//copies the magic signature into 'superblock'
 		printf("System magic signature: %s", superblock.magicSignature);
+		//prints the value
 
 	}
+	
+	//Still need to figure out:
+	//"size of on-disk inode structure"
+	//"Block group of this superblock" (shouldn't this just be 1?)
+	//"Number of blocks to preallocate"
 }
