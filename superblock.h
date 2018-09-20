@@ -26,7 +26,7 @@ struct superblockValues{
 
 struct superblockValues gSuperblock;
 
-INT1 init(FILE*);
+INT1 superblockInit(FILE*);
 UINT4* superblockGetSuperblockValues(FILE*, UINT4*);
 INT1 superblockSetSuperblockValues(UINT4*);
 UINT4 superblockGetTotalInodes();
