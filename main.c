@@ -18,7 +18,7 @@ INT1 main(UINT1 argc, CHAR** argv){
     return -1;
   }
 
-  init(pFp);
+  superblockInit(pFp);
   fclose(pFp);
 
   return 0;
