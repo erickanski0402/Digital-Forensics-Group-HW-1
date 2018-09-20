@@ -19,19 +19,37 @@ struct superblockValues{
   int inodeStructure;
   int group;
   int preallocate;
-};
+} superblock;
 
-void printSuperblock(struct superblockValues);
+FILE* openPartition(char*);
+int* getSuperblockValues(FILE*, int*);
+void setSuperblockValues(int*);
+int getTotalInodes();
+int getTotalBlocks();
+int getReservedBlocks();
+int getFreeBlocks();
+int getFreeInodes();
+int getFirstUsefulBlock();
+int getBlockSize();
+int getBlocksPerGroup();
+int getInodesPerGroup();
+int getMagicSignature();
+int getSizeOfInodeStructure();
+int getBlockGroup();
+int getBlocksToPreallocate();
+void printSuperblock();
 
 int main(int argc, char *argv[]){
   FILE *fp;
   char *line;
-  int vals[superblockSize];
-  struct superblockValues superblock;
+  int *vals;
 
-  if(argc == 2){
+  if(argc < 2){
+    printf("No parition specified");
+    exit(EXIT_FAILURE);
+  }else{
     //opens user specified partition
-    fp = fopen(argv[1], "r");
+    fp = openPartition(argv[1]);
   }
 
   if(fp == NULL){
@@ -41,15 +59,36 @@ int main(int argc, char *argv[]){
     exit(EXIT_FAILURE);
   }
 
+  //allocates memory to the integer array to store the superblock
+  vals = malloc(sizeof(int)*superblockSize);
+  //stores the superblock into individual integer values
+  getSuperblockValues(fp, vals);
+
+  //each value requested in the superblock is found in its predefined location
+  //as per ext4 superblock format
+  setSuperblockValues(vals);
+
+  //prints out desired values at their assumed locations within the superblock
+  printSuperblock(superblock);
+
+  return 0;
+}
+
+FILE* openPartition(char* partition){
+  //attempts to open the specified partition returning the file pointer to it
+  return fopen(partition, "r");
+}
+
+int* getSuperblockValues(FILE* fp, int* vals){
   //seeks the location of the primary superblock
   fseek(fp, superblockOffset, SEEK_SET);
   //reads the whole block
   fread(vals, superblockSize, 1, fp);
   //close file pointer
   fclose(fp);
+}
 
-  //each value requested in the superblock is found in its predefined location
-  //as per ext4 superblock format
+void setSuperblockValues(int *vals){
   superblock.totalInodes = vals[0];
   superblock.totalBlocks = vals[1];
   superblock.reservedBlocks = vals[2];
@@ -63,25 +102,72 @@ int main(int argc, char *argv[]){
   superblock.inodeStructure = vals[22];
   superblock.group = vals[17];
   superblock.preallocate = vals[18];
-
-  //prints out desired values at their assumed locations within the superblock
-  printSuperblock(superblock);
-
-  return 0;
 }
 
-void printSuperblock(struct superblockValues superblock){
-  printf("Total Inodes:           %d\n", superblock.totalInodes);
-  printf("Total Blocks:           %d\n", superblock.totalBlocks);
-  printf("Reserved Blocks:        %d\n", superblock.reservedBlocks);
-  printf("Free blocks:            %d\n", superblock.freeBlocks);
-  printf("Free inodes:            %d\n", superblock.freeInodes);
-  printf("First useful block:     %d\n", superblock.firstUsefulBlock);
-  printf("Block size:             %d\n", superblock.blockSize);
-  printf("Blocks per group:       %d\n", superblock.blocksPerGroup);
-  printf("Inodes per group:       %d\n", superblock.inodesPerGroup);
-  printf("Magic Signature:        %02x\n", superblock.magicSignature);
-  printf("Size of inode structure:%d\n", superblock.inodeStructure);
-  printf("Block group number:     %d\n", superblock.group);
-  printf("Blocks to preallocate:  %d\n", superblock.preallocate);
+int getTotalInodes(){
+  return superblock.totalInodes;
+}
+
+int getTotalBlocks(){
+  return superblock.totalBlocks;
+}
+
+int getReservedBlocks(){
+  return superblock.reservedBlocks;
+}
+
+int getFreeBlocks(){
+  return superblock.freeBlocks;
+}
+
+int getFreeInodes(){
+  return superblock.freeInodes;
+}
+
+int getFirstUsefulBlock(){
+  return superblock.firstUsefulBlock;
+}
+
+int getBlockSize(){
+  return superblock.blockSize;
+}
+
+int getBlocksPerGroup(){
+  return superblock.blocksPerGroup;
+}
+
+int getInodesPerGroup(){
+  return superblock.inodesPerGroup;
+}
+
+int getMagicSignature(){
+  return superblock.magicSignature;
+}
+
+int getSizeOfInodeStructure(){
+  return superblock.inodeStructure;
+}
+
+int getBlockGroup(){
+  return superblock.group;
+}
+
+int getBlocksToPreallocate(){
+  return superblock.preallocate;
+}
+
+void printSuperblock(){
+  printf("Total Inodes:           %d\n", getTotalInodes());
+  printf("Total Blocks:           %d\n", getTotalBlocks());
+  printf("Reserved Blocks:        %d\n", getReservedBlocks());
+  printf("Free blocks:            %d\n", getFreeBlocks());
+  printf("Free inodes:            %d\n", getFreeInodes());
+  printf("First useful block:     %d\n", getFirstUsefulBlock());
+  printf("Block size:             %d\n", getBlockSize());
+  printf("Blocks per group:       %d\n", getBlocksPerGroup());
+  printf("Inodes per group:       %d\n", getInodesPerGroup());
+  printf("Magic Signature:        %02x\n", getMagicSignature());
+  printf("Size of inode structure:%d\n", getSizeOfInodeStructure());
+  printf("Block group number:     %d\n", getBlockGroup());
+  printf("Blocks to preallocate:  %d\n", getBlocksToPreallocate());
 }
