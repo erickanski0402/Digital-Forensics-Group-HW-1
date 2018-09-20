@@ -1,6 +1,6 @@
 #include"superblock.h"
 
-INT1 init(FILE* pFp){
+INT1 superblockInit(FILE* pFp){
   UINT4 *aVals;
 
   if(pFp == NULL)
