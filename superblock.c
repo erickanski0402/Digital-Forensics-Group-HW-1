@@ -1,133 +1,124 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include"superblock.h"
 
-struct SuperblockInfo{
-	long totalInodes;
-	long sizeInBlocks;
-	long reservedBlocks;
-	long freeBlocks;
-	long freeInodes;
-	long firstUsefulBlock;
-	long blockSize;
-	long blocksPerGroup;
-	long inodesPerGroup;
-	char *magicSignature;
-	long onDiskInode;
-	long groupNumber;
-	long preallocate;
-} superblock;
+INT1 init(FILE* pFp){
+  UINT4 *aVals;
 
-void parseInfo(char*);
+  if(pFp == NULL)
+  {
+    //if the file is unreachable/doesnt exist
+    printf("Error: could not open partition\n");
+    //the program errors out and exits
+    return -1;
+  }
 
-int main(int arc, char *argv[]){
-	char command[50] = "sudo dumpe2fs -h ";
-	//initializes the terminal command
-	strcat(command, argv[1]);
-	//concats the desired partition to the ocmmand
+  //allocates memory to the integer array to store the superblock
+  aVals = malloc(sizeof(UINT4)*SUPERBLOCK_SIZE);
+  //stores the superblock into individual integer values
+  superblockGetSuperblockValues(pFp, aVals);
 
-	FILE *fp;
-	char path[1035];
-	fp = popen(command, "r");
-	if(fp == NULL){
-		printf("Failed to run command");
-		exit(1);
-		//if the command is unable to run the program exits
-	}
+  //each value requested in the superblock is found in its predefined location
+  //as per ext4 superblock format
+  superblockSetSuperblockValues(aVals);
 
-	while(fgets(path, sizeof(path) - 1, fp) != NULL){
-		//reads each line of the output of the command above
-		parseInfo(path);
-		//runs it through parseInfo function and adds each relevant value to 'superblock'
-	}
+  //prints out desired values at their assumed locations within the superblock
+  superblockPrintSuperblock(gSuperblock);
 
-	pclose(fp);
-	//closes fp
-
-	return 0;
+  return 0;
 }
 
-void parseInfo(char path[1035]){
-	char *ptr;
-	char *str = (char *)malloc(1035);
+UINT4* superblockGetSuperblockValues(FILE* pFp, UINT4* aVals){
+  //seeks the location of the primary superblock
+  fseek(pFp, SUPERBLOCK_OFFSET, SEEK_SET);
+  //reads the whole block
+  fread(aVals, SUPERBLOCK_SIZE, 1, pFp);
+  //close file pointer
+  fclose(pFp);
+}
 
-	//looks for a specific substring to determine whether line passed in has relevant information
-	if(strstr(path, "Inode count:")){
-		
-		str = strncpy(str, path + 26, 1035);
-		//copies whatever is after the colon of the given string
-		superblock.totalInodes = strtol(str, &ptr, 10);
-		//parses the value into a number
-		printf("Total inodes: %ld\n", superblock.totalInodes);
-		//prints the information
+INT1 superblockSetSuperblockValues(UINT4 *aVals){
+ gSuperblock.totalInodes = aVals[0];
+ gSuperblock.totalBlocks = aVals[1];
+ gSuperblock.reservedBlocks = aVals[2];
+ gSuperblock.freeBlocks = aVals[3];
+ gSuperblock.freeInodes = aVals[4];
+ gSuperblock.firstUsefulBlock = aVals[5];
+ gSuperblock.blockSize = pow(2, 10 + aVals[6]);
+ gSuperblock.blocksPerGroup = aVals[9];
+ gSuperblock.inodesPerGroup = aVals[10];
+ gSuperblock.magicSignature = aVals[14];
+ gSuperblock.inodeStructure = aVals[22];
+ gSuperblock.group = aVals[17];
+ gSuperblock.preallocate = aVals[18];
 
-	}else if(strstr(path, "Block count:")){
+ return 1;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.sizeInBlocks = strtol(str, &ptr, 10);
-		printf("Total blocks in system: %ld\n", superblock.sizeInBlocks);
-		//same as the above
+UINT4 superblockGetTotalInodes(){
+  return gSuperblock.totalInodes;
+}
 
-	}else if(strstr(path, "Reserved block count:")){
+UINT4 superblockGetTotalBlocks(){
+  return gSuperblock.totalBlocks;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.reservedBlocks = strtol(str, &ptr, 10);
-		printf("Number of reserved blocks: %ld\n", superblock.reservedBlocks);
-		//same as the above
+UINT4 superblockGetReservedBlocks(){
+  return gSuperblock.reservedBlocks;
+}
 
-	}else if(strstr(path, "Free blocks:")){
+UINT4 superblockGetFreeBlocks(){
+  return gSuperblock.freeBlocks;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.freeBlocks = strtol(str, &ptr, 10);
-		printf("Number of free blocks: %ld\n", superblock.freeBlocks);
-		//same as the above
+UINT4 superblockGetFreeInodes(){
+  return gSuperblock.freeInodes;
+}
 
-	}else if(strstr(path, "Free inodes:")){
+UINT2 superblockGetFirstUsefulBlock(){
+  return gSuperblock.firstUsefulBlock;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.freeInodes = strtol(str, &ptr, 10);
-		printf("Number of free inodes: %ld\n", superblock.freeInodes);
-		//same as the above
+UINT4 superblockGetBlockSize(){
+  return gSuperblock.blockSize;
+}
 
-	}else if(strstr(path, "First block:")){
+UINT4 superblockGetBlocksPerGroup(){
+  return gSuperblock.blocksPerGroup;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.firstUsefulBlock = strtol(str, &ptr, 10);
-		printf("First useful block: %ld\n", superblock.firstUsefulBlock);
-		//same as the above
+UINT4 superblockGetInodesPerGroup(){
+  return gSuperblock.inodesPerGroup;
+}
 
-	}else if(strstr(path, "Block size:")){
+UINT4 superblockGetMagicSignature(){
+  return gSuperblock.magicSignature;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.blockSize = strtol(str, &ptr, 10);
-		printf("System block size: %ld\n", superblock.blockSize);
-		//same as the above
+UINT4 superblockGetSizeOfInodeStructure(){
+  return gSuperblock.inodeStructure;
+}
 
-	}else if(strstr(path, "Blocks per group:")){
+UINT4 superblockGetBlockGroup(){
+  return gSuperblock.group;
+}
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.blocksPerGroup = strtol(str, &ptr, 10);
-		printf("Number of blocks per group: %ld\n", superblock.blocksPerGroup);
-		//same as the above
+UINT4 superblockGetBlocksToPreallocate(){
+  return gSuperblock.preallocate;
+}
 
-	}else if(strstr(path, "Inodes per group:")){
+INT1 superblockPrintSuperblock(){
+  printf("Total Inodes:           %d\n", superblockGetTotalInodes());
+  printf("Total Blocks:           %d\n", superblockGetTotalBlocks());
+  printf("Reserved Blocks:        %d\n", superblockGetReservedBlocks());
+  printf("Free blocks:            %d\n", superblockGetFreeBlocks());
+  printf("Free inodes:            %d\n", superblockGetFreeInodes());
+  printf("First useful block:     %d\n", superblockGetFirstUsefulBlock());
+  printf("Block size:             %d\n", superblockGetBlockSize());
+  printf("Blocks per group:       %d\n", superblockGetBlocksPerGroup());
+  printf("Inodes per group:       %d\n", superblockGetInodesPerGroup());
+  printf("Magic Signature:        %02x\n", superblockGetMagicSignature());
+  printf("Size of inode structure:%d\n", superblockGetSizeOfInodeStructure());
+  printf("Block group number:     %d\n", superblockGetBlockGroup());
+  printf("Blocks to preallocate:  %d\n", superblockGetBlocksToPreallocate());
 
-		str = strncpy(str, path + 26, 1035);
-		superblock.inodesPerGroup = strtol(str, &ptr, 10);
-		printf("Number of inodes per group: %ld\n", superblock.inodesPerGroup);
-		//same as the above
-
-	}else if(strstr(path, "Filesystem magic number:")){
-
-		superblock.magicSignature = strncpy(str, path + 26, 1035);
-		//copies the magic signature into 'superblock'
-		printf("System magic signature: %s", superblock.magicSignature);
-		//prints the value
-
-	}
-	
-	//Still need to figure out:
-	//"size of on-disk inode structure"
-	//"Block group of this superblock" (shouldn't this just be 1?)
-	//"Number of blocks to preallocate"
+  return 1;
 }
